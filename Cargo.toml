@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v2023_04_20" }
+halo2_proofs = {  git = "https://github.com/summa-dev/halo2"}
 askama = { version = "0.12.0", features = ["config"], default-features = false }
 hex = "0.4.3"
 ruint = "1"
