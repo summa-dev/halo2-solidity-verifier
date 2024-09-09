@@ -4,7 +4,8 @@ use crate::codegen::{
 };
 use askama::{Error, Template};
 use ruint::aliases::U256;
-use std::fmt;
+use std::fmt::{self, Display};
+
 
 #[derive(Template)]
 #[template(path = "Halo2VerifyingKey.sol")]
@@ -61,7 +62,7 @@ impl Halo2Verifier {
 }
 
 mod filters {
-    use std::fmt::LowerHex;
+    use std::fmt::{LowerHex, Display};
 
     pub fn hex(value: impl LowerHex) -> ::askama::Result<String> {
         let value = format!("{value:x}");
@@ -80,4 +81,22 @@ mod filters {
             Ok(string)
         }
     }
+
+    pub fn left_pad(value: impl Display, width: usize) -> ::askama::Result<String> {
+        let string = format!("{:>width$}", value, width = width);
+        Ok(string)
+    }
+}
+
+pub fn index_coord(value: impl Display, index: &usize, coord: impl Display) -> String {
+    format!(
+        "{}_{}_{}",
+        value.to_string().to_uppercase(),
+        index,
+        coord.to_string().to_uppercase()
+    )
+}
+
+pub fn vk_var_name(value: impl Display) -> String {
+    format!("VK_{}_VAL", value.to_string().to_uppercase())
 }
