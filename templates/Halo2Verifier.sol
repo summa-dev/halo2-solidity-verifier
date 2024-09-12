@@ -84,7 +84,7 @@ contract Halo2Verifier {
     uint256 internal constant {{ self::index_coord("permutation_comms", loop.index0, "y")|left_pad(24) }} = {{ y|hex_padded(64) }};
     {%- endfor %}
 
-    function getVerifyingKey() public view returns (uint256[{{ vk_len / 0x20 }}] memory) {
+    function getVerifyingKey() public view returns (uint256[{{ vk_len / 32 }}] memory) {
         return [
     {%- for (name, chunk) in vk_.constants %}
             {{ self::vk_var_name(name)|left_pad(24) }},
@@ -102,7 +102,7 @@ contract Halo2Verifier {
 
     {%- else %}
 
-    function getVerifyingKey(address vk) public view returns (uint256[{{ vk_len / 0x20 }}] memory) {
+    function getVerifyingKey(address vk) public view returns (uint256[{{ vk_len / 32 }}] memory) {
         assembly {
             extcodecopy(vk, VK_MPTR, 0x00, {{ vk_len|hex() }})
             return (VK_MPTR, {{ vk_len|hex() }})
