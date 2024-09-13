@@ -69,6 +69,47 @@ contract Halo2Verifier {
     uint256 internal constant   PAIRING_RHS_X_MPTR = {{ theta_mptr + 24 }};
     uint256 internal constant   PAIRING_RHS_Y_MPTR = {{ theta_mptr + 25 }};
 
+    {%- if let Some(vk_) = vk %}
+
+    // verifying key parameters
+    {%- for (name, chunk) in vk_.constants %}
+    uint256 internal constant {{ self::vk_var_name(name)|left_pad(24) }} = {{ chunk|hex_padded(64) }};
+    {%- endfor %}
+    {%- for (x, y) in vk_.fixed_comms %}
+    uint256 internal constant {{ self::index_coord("fixed_comms", loop.index0, "x")|left_pad(24) }} = {{ x|hex_padded(64) }};
+    uint256 internal constant {{ self::index_coord("fixed_comms", loop.index0, "y")|left_pad(24) }} = {{ y|hex_padded(64) }};
+    {%- endfor %}
+    {%- for (x, y) in vk_.permutation_comms %}
+    uint256 internal constant {{ self::index_coord("permutation_comms", loop.index0, "x")|left_pad(24) }} = {{ x|hex_padded(64) }};
+    uint256 internal constant {{ self::index_coord("permutation_comms", loop.index0, "y")|left_pad(24) }} = {{ y|hex_padded(64) }};
+    {%- endfor %}
+
+    function getVerifyingKey() public view returns (uint256[{{ vk_len / 32 }}] memory) {
+        return [
+    {%- for (name, chunk) in vk_.constants %}
+            {{ self::vk_var_name(name)|left_pad(24) }},
+    {%- endfor %}
+    {%- for (x, y) in vk_.fixed_comms %}
+            {{ self::index_coord("fixed_comms", loop.index0, "x")|left_pad(24) }},
+            {{ self::index_coord("fixed_comms", loop.index0, "y")|left_pad(24) }},
+    {%- endfor %}
+    {%- for (x, y) in vk_.permutation_comms %}
+            {{ self::index_coord("permutation_comms", loop.index0, "x")|left_pad(24) }},
+            {{ self::index_coord("permutation_comms", loop.index0, "y")|left_pad(24) }}{%- if loop.index < vk_.permutation_comms.len() %},{%- endif %}
+    {%- endfor %}
+        ];
+    }
+
+    {%- else %}
+
+    function getVerifyingKey(address vk) public view returns (uint256[{{ vk_len / 32 }}] memory) {
+        assembly {
+            extcodecopy(vk, VK_MPTR, 0x00, {{ vk_len|hex() }})
+            return (VK_MPTR, {{ vk_len|hex() }})
+        }
+    }
+    {%- endif %}
+
     function verifyProof(
         {%- match vk %}
         {%- when Some with (vk) %}
@@ -227,17 +268,17 @@ contract Halo2Verifier {
                 {%- when Some with (vk) %}
                 // Load vk into memory
                 {%- for (name, chunk) in vk.constants %}
-                mstore({{ vk_mptr + loop.index0 }}, {{ chunk|hex_padded(64) }}) // {{ name }}
+                mstore({{ vk_mptr + loop.index0 }}, {{ self::vk_var_name(name)|left_pad(24) }}) // {{ name }}
                 {%- endfor %}
                 {%- for (x, y) in vk.fixed_comms %}
                 {%- let offset = vk.constants.len() %}
-                mstore({{ vk_mptr + offset + 2 * loop.index0 }}, {{ x|hex_padded(64) }}) // fixed_comms[{{ loop.index0 }}].x
-                mstore({{ vk_mptr + offset + 2 * loop.index0 + 1 }}, {{ y|hex_padded(64) }}) // fixed_comms[{{ loop.index0 }}].y
+                mstore({{ vk_mptr + offset + 2 * loop.index0 }}, {{ self::index_coord("fixed_comms", loop.index0, "x")|left_pad(24) }}) // fixed_comms[{{ loop.index0 }}].x
+                mstore({{ vk_mptr + offset + 2 * loop.index0 + 1 }}, {{ self::index_coord("fixed_comms", loop.index0, "y")|left_pad(24) }}) // fixed_comms[{{ loop.index0 }}].y
                 {%- endfor %}
                 {%- for (x, y) in vk.permutation_comms %}
                 {%- let offset = vk.constants.len() + 2 * vk.fixed_comms.len() %}
-                mstore({{ vk_mptr + offset + 2 * loop.index0 }}, {{ x|hex_padded(64) }}) // permutation_comms[{{ loop.index0 }}].x
-                mstore({{ vk_mptr + offset + 2 * loop.index0 + 1 }}, {{ y|hex_padded(64) }}) // permutation_comms[{{ loop.index0 }}].y
+                mstore({{ vk_mptr + offset + 2 * loop.index0 }}, {{ self::index_coord("permutation_comms", loop.index0, "x")|left_pad(24) }}) // permutation_comms[{{ loop.index0 }}].x
+                mstore({{ vk_mptr + offset + 2 * loop.index0 + 1 }}, {{ self::index_coord("permutation_comms", loop.index0, "y")|left_pad(24) }}) // permutation_comms[{{ loop.index0 }}].y
                 {%- endfor %}
                 {%- when None %}
                 // Copy vk into memory

@@ -9,6 +9,12 @@ pub const FN_SIG_VERIFY_PROOF: [u8; 4] = [0x1e, 0x8e, 0x1e, 0x13];
 /// Function signature of `verifyProof(address,bytes,uint256[])`.
 pub const FN_SIG_VERIFY_PROOF_WITH_VK_ADDRESS: [u8; 4] = [0xaf, 0x83, 0xa1, 0x8d];
 
+/// Function signature of `getVerifyingKey()`.
+pub const FN_SIG_GET_VERIFYING_KEY: [u8; 4] = [0xaf, 0x7f, 0x43, 0x64];
+
+/// Function signature of `getVerifyingKey(address)`.
+pub const FN_SIG_GET_VERIFYING_KEY_WITH_VK_ADDRESS: [u8; 4] = [0x5f, 0xc4, 0x90, 0x4d];
+
 /// Encode proof into calldata to invoke `Halo2Verifier.verifyProof`.
 ///
 /// For `vk_address`:
@@ -42,6 +48,32 @@ pub fn encode_calldata(
         proof.iter().cloned(),                                       // proof
         to_u256_be_bytes(num_instances),                             // length of instances
         instances.iter().map(fr_to_u256).flat_map(to_u256_be_bytes), // instances
+    ]
+    .collect()
+}
+
+/// Encode calldata to invoke `Halo2Verifier.getVerifyingKey`.
+///
+/// For `vk_address`:
+/// - Pass `None` if verifying key is embedded in `Halo2Verifier`
+/// - Pass `Some(vk_address)` if verifying key is separated and deployed at `vk_address`
+pub fn get_vkey_calldata(vk_address: Option<[u8; 20]>) -> Vec<u8> {
+    let fn_sig = if vk_address.is_some() {
+        FN_SIG_GET_VERIFYING_KEY_WITH_VK_ADDRESS
+    } else {
+        FN_SIG_GET_VERIFYING_KEY
+    };
+    let vk_address = if let Some(vk_address) = vk_address {
+        U256::try_from_be_slice(&vk_address)
+            .unwrap()
+            .to_be_bytes::<0x20>()
+            .to_vec()
+    } else {
+        Vec::new()
+    };
+    chain![
+        fn_sig,     // function signature
+        vk_address, // verifying key address
     ]
     .collect()
 }
